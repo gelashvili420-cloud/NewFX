@@ -4,100 +4,32 @@ import requests
 
 app = FastAPI()
 
-def get_valuto():
-    url = "https://valuto.ge/valutis-konvertacia/"
-    html = requests.get(url).text
-    soup = BeautifulSoup(html, "html.parser")
+def fetch_html(url):
+    headers = {"User-Agent": "Mozilla/5.0"}
+    return requests.get(url, headers=headers).text
 
+# ========= Valuto ===========
+def parse_valuto():
+    html = fetch_html("https://valuto.ge/valutis-konvertacia/")
+    soup = BeautifulSoup(html, "html.parser")
     data = {}
     blocks = soup.select("div.currency-item")
     for b in blocks:
-        code = b.select_one("div.currency-name").text.strip().split()[0]
-        buy = b.select_one("div.buy").text.strip()
-        sell = b.select_one("div.sell").text.strip()
-        data[code] = {"buy": buy, "sell": sell}
-    return data
-
-def get_kursi():
-    url = "https://kursi.ge/ka/"
-    html = requests.get(url).text
-    soup = BeautifulSoup(html, "html.parser")
-
-    data = {}
-    rows = soup.select("div.exchange-rate")
-    for r in rows:
-        code = r.select_one("div.currency-code").text.strip()
-        buy = r.select_one("div.buy").text.strip()
-        sell = r.select_one("div.sell").text.strip()
-        data[code] = {"buy": buy, "sell": sell}
-    return data
-
-def get_giro():
-    url = "https://girocredit.ge/web/"
-    html = requests.get(url).text
-    soup = BeautifulSoup(html, "html.parser")
-
-    data = {}
-    rows = soup.select("table tbody tr")
-    for r in rows:
-        cols = r.find_all("td")
-        if len(cols) >= 4:
-            code = cols[0].text.strip()
-            buy = cols[1].text.strip()
-            sell = cols[2].text.strip()
+        try:
+            code = b.select_one("div.currency-name").text.strip().split()[0]
+            buy = b.select_one("div.buy").text.strip()
+            sell = b.select_one("div.sell").text.strip()
             data[code] = {"buy": buy, "sell": sell}
+        except:
+            pass
     return data
 
-def get_express():
-    url = "https://expresslombard.ge/ka/valutis-kursebi"
-    html = requests.get(url).text
+# ========= Rico ===========
+def parse_rico():
+    html = fetch_html("https://rico.ge")
     soup = BeautifulSoup(html, "html.parser")
-
-    data = {}
-    rows = soup.select("div.currency-block")
-    for r in rows:
-        code = r.select_one("div.currency-title").text.strip()
-        buy = r.select_one("div.buy").text.strip()
-        sell = r.select_one("div.sell").text.strip()
-        data[code] = {"buy": buy, "sell": sell}
-    return data
-
-def get_crystal():
-    url = "https://crystal.ge/valutis-kursebi/"
-    html = requests.get(url).text
-    soup = BeautifulSoup(html, "html.parser")
-
-    data = {}
-    rows = soup.select("div.rate-item")
-    for r in rows:
-        code = r.select_one("div.currency-code").text.strip()
-        buy = r.select_one("div.buy").text.strip()
-        sell = r.select_one("div.sell").text.strip()
-        data[code] = {"buy": buy, "sell": sell}
-    return data
-
-def get_rico():
-    url = "https://rico.ge"
-    html = requests.get(url).text
-    soup = BeautifulSoup(html, "html.parser")
-
     data = {}
     rows = soup.select("tr.currency-row")
-    for r in rows:
-        cols = r.find_all("td")
-        code = cols[0].text.strip()
-        buy = cols[1].text.strip()
-        sell = cols[2].text.strip()
-        data[code] = {"buy": buy, "sell": sell}
-    return data
-
-def get_mjc():
-    url = "https://mjc.ge/rates"
-    html = requests.get(url).text
-    soup = BeautifulSoup(html, "html.parser")
-
-    data = {}
-    rows = soup.select("table tbody tr")
     for r in rows:
         cols = r.find_all("td")
         if len(cols) >= 3:
@@ -107,14 +39,96 @@ def get_mjc():
             data[code] = {"buy": buy, "sell": sell}
     return data
 
+# ========= MJC ===========
+def parse_mjc():
+    html = fetch_html("https://mjc.ge/rates")
+    soup = BeautifulSoup(html, "html.parser")
+    data = {}
+    rows = soup.select("table tr")
+    for r in rows:
+        cols = r.find_all("td")
+        if len(cols) >= 3:
+            code = cols[0].text.strip()
+            buy = cols[1].text.strip()
+            sell = cols[2].text.strip()
+            data[code] = {"buy": buy, "sell": sell}
+    return data
+
+# ========= Kursi.ge ===========
+def parse_kursi():
+    html = fetch_html("https://kursi.ge/ka/")
+    soup = BeautifulSoup(html, "html.parser")
+    data = {}
+    rows = soup.select("table tr")
+    for r in rows:
+        cols = r.find_all("td")
+        if len(cols) >= 3:
+            code = cols[0].text.strip()
+            buy = cols[1].text.strip()
+            sell = cols[2].text.strip()
+            if code:
+                data[code] = {"buy": buy, "sell": sell}
+    return data
+
+# ========= GiroCredit ===========
+def parse_giro():
+    html = fetch_html("https://girocredit.ge/web/")
+    soup = BeautifulSoup(html, "html.parser")
+    data = {}
+    rows = soup.select("table tr")
+    for r in rows:
+        cols = r.find_all("td")
+        if len(cols) >= 4:
+            code = cols[0].text.strip()
+            buy = cols[1].text.strip()
+            sell = cols[2].text.strip()
+            if code:
+                data[code] = {"buy": buy, "sell": sell}
+    return data
+
+# ========= ExpressLombard ===========
+def parse_express():
+    html = fetch_html("https://expresslombard.ge/ka/valutis-kursebi")
+    soup = BeautifulSoup(html, "html.parser")
+    data = {}
+    rows = soup.select("h3")
+    for r in rows:
+        txt = r.text.strip()
+        if txt:
+            try:
+                parts = r.find_next_siblings("h4")
+                official = parts[0].text.strip()
+                buy = parts[1].text.strip()
+                sell = parts[2].text.strip()
+                data[txt] = {"official": official, "buy": buy, "sell": sell}
+            except:
+                pass
+    return data
+
+# ========= Crystal.ge ===========
+def parse_crystal():
+    html = fetch_html("https://crystal.ge/valutis-kursebi/")
+    soup = BeautifulSoup(html, "html.parser")
+    data = {}
+    rows = soup.select("div.rate-item")
+    for r in rows:
+        try:
+            code = r.select_one("div.currency-code").text.strip()
+            buy = r.select_one("div.buy").text.strip()
+            sell = r.select_one("div.sell").text.strip()
+            data[code] = {"buy": buy, "sell": sell}
+        except:
+            pass
+    return data
+
 @app.get("/rates")
-def rates():
+def all_rates():
     return {
-        "valuto": get_valuto(),
-        "kursi": get_kursi(),
-        "giro": get_giro(),
-        "express": get_express(),
-        "crystal": get_crystal(),
-        "rico": get_rico(),
-        "mjc": get_mjc()
+        "valuto": parse_valuto(),
+        "rico": parse_rico(),
+        "mjc": parse_mjc(),
+        "kursi": parse_kursi(),
+        "giro": parse_giro(),
+        "express": parse_express(),
+        "crystal": parse_crystal()
     }
